@@ -23,5 +23,12 @@ namespace ChatIADesktop.Servicos
         /// </summary>
         /// <returns>Array com nomes dos modelos</returns>
         Task<string[]> ListarModelosDisponiveisAsync();
+
+        /// <summary>
+        /// Define o modelo atual a ser usado pelo Ollama
+        /// </summary>
+        /// <param name="modelo">Nome do modelo a ser utilizado</param>
+        /// <returns>Task completada quando a operação for concluída</returns>
+        Task DefinirModeloAtualAsync(string modelo);
     }
 }

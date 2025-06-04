@@ -54,13 +54,27 @@
 .message-content pre {
     white-space: pre-wrap;
     word-wrap: break-word;
+    margin: 1em 0;
+    padding: 1em;
+    border-radius: 6px;
+    background-color: rgba(0, 0, 0, 0.3);
+    overflow-x: auto;
+}
+
+.message-content pre code {
+    padding: 0;
+    background-color: transparent;
+    border-radius: 0;
+    font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.9em;
+    line-height: 1.5;
 }
 
 .message-content code {
     background-color: rgba(0, 0, 0, 0.2);
     padding: 2px 4px;
     border-radius: 4px;
-    font-family: monospace;
+    font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
 /* Animação de loading para mensagens */

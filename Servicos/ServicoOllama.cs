@@ -17,7 +17,7 @@ namespace ChatIADesktop.Servicos
         private readonly IConfiguration _configuracao;
         private readonly ILogger<ServicoOllama> _logger;
         private readonly HttpClient _httpClient;
-        private readonly string _modeloPadrao = "llama2"; // Valor padrão caso não exista no config
+        private string _modeloAtual = "gemma3"; // Valor padrão caso não exista no config
         private readonly int _timeoutSegundos = 30; // Valor padrão caso não exista no config
 
         public ServicoOllama(IConfiguration configuracao, ILogger<ServicoOllama> logger, HttpClient httpClient)
@@ -34,7 +34,7 @@ namespace ChatIADesktop.Servicos
             
             var modeloConfig = _configuracao.GetSection(ConstantesApp.SECAO_OLLAMA)["ModeloPadrao"];
             if (!string.IsNullOrEmpty(modeloConfig))
-                _modeloPadrao = modeloConfig;
+                _modeloAtual = modeloConfig;
             
             var timeoutConfig = _configuracao.GetSection(ConstantesApp.SECAO_OLLAMA)["TimeoutSegundos"];
             if (!string.IsNullOrEmpty(timeoutConfig) && int.TryParse(timeoutConfig, out int timeout))
@@ -47,52 +47,28 @@ namespace ChatIADesktop.Servicos
         {
             try
             {
-                // Tenta usar a API de chat primeiro (Ollama v0.1.14+)
-                try
+                // Usar somente a API generate que confirmamos estar funcionando
+                var requestData = new
                 {
-                    var chatRequestData = new
-                    {
-                        model = _modeloPadrao,
-                        messages = new[]
-                        {
-                            new { role = "user", content = mensagem }
-                        },
-                        stream = false
-                    };
-
-                    var chatResponse = await _httpClient.PostAsJsonAsync("/api/chat", chatRequestData);
-                    if (chatResponse.IsSuccessStatusCode)
-                    {
-                        var jsonResponse = await chatResponse.Content.ReadAsStringAsync();
-                        var document = JsonDocument.Parse(jsonResponse);
-                        var root = document.RootElement;
-
-                        if (root.TryGetProperty("message", out var messageElement) && 
-                            messageElement.TryGetProperty("content", out var contentElement))
-                        {
-                            return contentElement.GetString() ?? "Sem resposta";
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Falha ao usar API de chat, tentando fallback para API generate");
-                    // Continuar com o fallback abaixo
-                }
-
-                // Fallback para a API generate (versões mais antigas do Ollama)
-                var generateRequestData = new
-                {
-                    model = _modeloPadrao,
+                    model = _modeloAtual,
                     prompt = mensagem,
                     stream = false
                 };
 
-                var generateResponse = await _httpClient.PostAsJsonAsync("/api/generate", generateRequestData);
-                generateResponse.EnsureSuccessStatusCode();
+                var response = await _httpClient.PostAsJsonAsync("/api/generate", requestData);
+                response.EnsureSuccessStatusCode();
 
-                var ollamaResponse = await generateResponse.Content.ReadFromJsonAsync<RespostaOllama>();
-                return ollamaResponse?.Response ?? "Não foi possível obter uma resposta do modelo.";
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var document = JsonDocument.Parse(jsonResponse);
+                var root = document.RootElement;
+
+                // Extrair o campo "response" do JSON
+                if (root.TryGetProperty("response", out var responseProperty))
+                {
+                    return responseProperty.GetString() ?? "Não foi possível obter uma resposta.";
+                }
+
+                return "Formato de resposta inesperado da API.";
             }
             catch (HttpRequestException ex)
             {
@@ -113,74 +89,82 @@ namespace ChatIADesktop.Servicos
 
         public async Task<string> ObterModeloAtualAsync()
         {
-            return await Task.FromResult(_modeloPadrao);
+            return await Task.FromResult(_modeloAtual);
+        }
+        
+        public async Task DefinirModeloAtualAsync(string modelo)
+        {
+            if (string.IsNullOrWhiteSpace(modelo))
+            {
+                throw new ArgumentException("O modelo não pode ser nulo ou vazio", nameof(modelo));
+            }
+            
+            try
+            {
+                // Verificar se o modelo existe na lista de modelos disponíveis
+                var modelos = await ListarModelosDisponiveisAsync();
+                if (!modelos.Contains(modelo))
+                {
+                    _logger.LogWarning($"O modelo '{modelo}' não está na lista de modelos disponíveis");
+                    // Ainda assim, vamos definir o modelo solicitado, pois pode ser que 
+                    // o usuário esteja usando um modelo que ainda não foi listado
+                }
+                
+                _modeloAtual = modelo;
+                _logger.LogInformation($"Modelo alterado para '{modelo}'");
+                
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Erro ao definir modelo '{modelo}'");
+                throw;
+            }
         }
 
         public async Task<string[]> ListarModelosDisponiveisAsync()
         {
             try
             {
-                // Tenta usar o endpoint models (versões mais recentes)
-                try
+                // Usar somente a API tags que confirmamos estar funcionando
+                var response = await _httpClient.GetAsync("/api/tags");
+                if (!response.IsSuccessStatusCode)
                 {
-                    var response = await _httpClient.GetAsync("/api/models");
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var jsonResponse = await response.Content.ReadAsStringAsync();
-                        var document = JsonDocument.Parse(jsonResponse);
-                        var modelos = new List<string>();
-                        
-                        var root = document.RootElement;
-                        if (root.TryGetProperty("models", out var modelArray) && modelArray.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var model in modelArray.EnumerateArray())
-                            {
-                                if (model.TryGetProperty("name", out var name) && !string.IsNullOrEmpty(name.GetString()))
-                                {
-                                    modelos.Add(name.GetString()!);
-                                }
-                            }
-                            
-                            return modelos.ToArray();
-                        }
-                    }
-                }
-                catch
-                {
-                    // Continuar com o fallback
+                    return new[] { _modeloAtual };
                 }
                 
-                // Fallback para endpoint tags (versões mais antigas)
-                var tagsResponse = await _httpClient.GetAsync("/api/tags");
-                tagsResponse.EnsureSuccessStatusCode();
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var document = JsonDocument.Parse(jsonResponse);
                 
-                var tagsJsonResponse = await tagsResponse.Content.ReadAsStringAsync();
-                var tagsDocument = JsonDocument.Parse(tagsJsonResponse);
+                var modelos = new List<string>();
+                var root = document.RootElement;
                 
-                var tagsModelos = new List<string>();
-                var tagsRoot = tagsDocument.RootElement;
-                
-                if (tagsRoot.TryGetProperty("models", out var tagsModelArray) && tagsModelArray.ValueKind == JsonValueKind.Array)
+                if (root.TryGetProperty("models", out var modelArray) && modelArray.ValueKind == JsonValueKind.Array)
                 {
-                    foreach (var model in tagsModelArray.EnumerateArray())
+                    foreach (var model in modelArray.EnumerateArray())
                     {
                         if (model.TryGetProperty("name", out var name) && !string.IsNullOrEmpty(name.GetString()))
                         {
-                            tagsModelos.Add(name.GetString()!);
+                            // Remover o ":latest" para exibição mais limpa
+                            var modelName = name.GetString()!;
+                            if (modelName.EndsWith(":latest"))
+                            {
+                                modelName = modelName.Substring(0, modelName.Length - 7);
+                            }
+                            modelos.Add(modelName);
                         }
                     }
                 }
                 
-                if (tagsModelos.Count > 0)
-                    return tagsModelos.ToArray();
+                if (modelos.Count > 0)
+                    return modelos.ToArray();
                 
-                // Se nenhuma API funcionou, retorna apenas o modelo padrão
-                return new[] { _modeloPadrao };
+                return new[] { _modeloAtual };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro ao listar modelos disponíveis");
-                return new[] { _modeloPadrao };
+                return new[] { _modeloAtual };
             }
         }
     }

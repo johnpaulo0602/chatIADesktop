@@ -120,7 +120,7 @@
                     </button>
                 </form>
                 <div class="text-xs text-gray-500 mt-1 text-center">
-                    Modelo atual: @ModeloAtual | Comandos: <span class="text-green-500">@sentimento</span> <span class="text-blue-500">@ajuda.ai</span>
+                    Modelo atual: @ModeloAtual | Comandos: <span class="text-green-500">@@sentimento</span> <span class="text-blue-500">@@ajuda.ai</span>
                 </div>
             </div>
         </div>
@@ -379,16 +379,58 @@
     private string FormatarMensagem(string conteudo)
     {
         if (string.IsNullOrEmpty(conteudo)) return string.Empty;
+
+        // Escape HTML chars to prevent XSS
+        var resultado = HtmlEscape(conteudo);
         
-        // Substitui markdown básico (** para negrito, * para itálico, ``` para código)
-        var resultado = conteudo
-            .Replace("**", "<strong>", StringComparison.OrdinalIgnoreCase)
-            .Replace("**", "</strong>", StringComparison.OrdinalIgnoreCase)
-            .Replace("*", "<em>", StringComparison.OrdinalIgnoreCase)
-            .Replace("*", "</em>", StringComparison.OrdinalIgnoreCase);
-            
-        // Substitui quebras de linha por <br>
+        // Processar blocos de código
+        resultado = ProcessarBlocosDeCodigo(resultado);
+        
+        // Processar negrito (** **)
+        resultado = Regex.Replace(resultado, @"\*\*(.*?)\*\*", "<strong>$1</strong>");
+        
+        // Processar itálico (* *)
+        resultado = Regex.Replace(resultado, @"\*(.*?)\*", "<em>$1</em>");
+        
+        // Substituir quebras de linha por <br>
         resultado = resultado.Replace("\n", "<br />");
+        
+        return resultado;
+    }
+    
+    private string HtmlEscape(string text)
+    {
+        return text
+            .Replace("&", "&amp;")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;")
+            .Replace("\"", "&quot;")
+            .Replace("'", "&#39;");
+    }
+    
+    private string ProcessarBlocosDeCodigo(string texto)
+    {
+        // Processa blocos de código com syntax highlighting
+        var pattern = @"```(.*?)\n(.*?)```";
+        var matches = Regex.Matches(texto, pattern, RegexOptions.Singleline);
+        
+        // Se não houver blocos de código, retorna o texto original
+        if (matches.Count == 0) return texto;
+        
+        var resultado = texto;
+        
+        // Processa cada bloco de código
+        foreach (Match match in matches.Cast<Match>().Reverse())
+        {
+            var linguagem = match.Groups[1].Value.Trim();
+            var codigo = match.Groups[2].Value;
+            
+            // Formata o bloco de código
+            var blocoFormatado = $"<pre><code class=\"language-{linguagem}\">{codigo}</code></pre>";
+            
+            // Substitui o bloco original pelo formatado
+            resultado = resultado.Substring(0, match.Index) + blocoFormatado + resultado.Substring(match.Index + match.Length);
+        }
         
         return resultado;
     }

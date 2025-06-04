@@ -31,7 +31,7 @@
                         {
                             @foreach (var modelo in Modelos)
                             {
-                                <button @onclick="() => SelecionarModelo(modelo)" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-700 @(modelo == ModeloAtual ? "bg-gray-700" : "")">
+                                <button @onclick="async () => await SelecionarModelo(modelo)" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-700 @(modelo == ModeloAtual ? "bg-gray-700" : "")">
                                     @modelo
                                 </button>
                             }
@@ -107,9 +107,16 @@
     {
         if (modelo != ModeloAtual)
         {
-            ModeloAtual = modelo;
-            // Atualizar o modelo no appsettings ou em algum serviço de estado global
-            // Por enquanto, só atualizamos a variável local
+            try
+            {
+                await ServicoOllama.DefinirModeloAtualAsync(modelo);
+                ModeloAtual = modelo;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Erro ao selecionar modelo: {ex.Message}");
+                // Manter o modelo atual
+            }
         }
         ModeloDropdownAberto = false;
     }
