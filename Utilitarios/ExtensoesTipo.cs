@@ -20,7 +20,7 @@ namespace ChatIADesktop.Utilitarios
         /// <summary>
         /// Converte uma string JSON para o tipo especificado
         /// </summary>
-        public static T DeJson<T>(this string json)
+        public static T? DeJson<T>(this string json)
         {
             if (string.IsNullOrEmpty(json)) return default;
             return JsonSerializer.Deserialize<T>(json);
@@ -31,7 +31,7 @@ namespace ChatIADesktop.Utilitarios
         /// </summary>
         public static string Truncar(this string texto, int tamanhoMaximo)
         {
-            if (string.IsNullOrEmpty(texto)) return texto;
+            if (string.IsNullOrEmpty(texto)) return string.Empty;
             return texto.Length <= tamanhoMaximo ? texto : texto.Substring(0, tamanhoMaximo) + "...";
         }
     }

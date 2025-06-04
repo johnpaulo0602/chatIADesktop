@@ -1,0 +1,352 @@
+@page "/chat"
+@using ChatIADesktop.Modelos
+@using ChatIADesktop.Servicos
+@using ChatIADesktop.Utilitarios
+@using System.Text.RegularExpressions
+@inject IServicoOllama ServicoOllama
+@inject IAnalisadorSentimento AnalisadorSentimento
+@inject IExplicadorTermos ExplicadorTermos
+@inject IProcessadorArquivos ProcessadorArquivos
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Chat IA Desktop - Conversa</PageTitle>
+
+<div class="container-fluid chat-container">
+    <div class="row">
+        <div class="col-md-9">
+            <div class="chat-messages" id="mensagensContainer">
+                @if (Mensagens.Count == 0)
+                {
+                    <div class="empty-chat-message">
+                        <p>Comece uma conversa com a IA...</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var mensagem in Mensagens)
+                    {
+                        <div class="message-container @(mensagem.EhUsuario ? "user-message" : mensagem.EhIA ? "ai-message" : mensagem.EhArquivo ? "file-message" : "system-message")">
+                            @if (mensagem.EhArquivo)
+                            {
+                                <div class="file-info">
+                                    <i class="fa fa-file"></i>
+                                    <strong>Arquivo:</strong> @mensagem.NomeArquivo
+                                </div>
+                            }
+                            
+                            <div class="message-content">
+                                @((MarkupString)FormatarMensagem(mensagem.Conteudo))
+                            </div>
+                            
+                            <div class="message-time">
+                                @mensagem.DataHora.ToString("HH:mm")
+                            </div>
+                        </div>
+                    }
+                }
+
+                @if (Processando)
+                {
+                    <div class="processing-indicator">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Processando...</span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="chat-input">
+                <div class="input-group">
+                    <InputFile OnChange="CarregarArquivo" class="form-control file-input" accept=".pdf,.txt" />
+                    <textarea 
+                        @bind="MensagemAtual" 
+                        @bind:event="oninput"
+                        @onkeydown="ManipularTecla" 
+                        class="form-control" 
+                        placeholder="Digite sua mensagem..."
+                        rows="2"
+                        disabled="@Processando">
+                    </textarea>
+                    <button class="btn btn-primary" @onclick="EnviarMensagem" disabled="@(Processando || string.IsNullOrWhiteSpace(MensagemAtual))">
+                        <i class="fa fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="chat-sidebar">
+                <div class="sidebar-header">
+                    <h5>Informações</h5>
+                </div>
+                
+                <div class="model-info">
+                    <strong>Modelo:</strong> @ModeloAtual
+                </div>
+                
+                <div class="sidebar-section">
+                    <h6>Comandos Disponíveis</h6>
+                    <ul class="commands-list">
+                        <li><code>@@ajuda.ai [termo]</code> - Explica um termo</li>
+                        <li><code>@@sentimento [texto]</code> - Analisa sentimento</li>
+                    </ul>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h6>Arquivo Suportados</h6>
+                    <ul class="file-list">
+                        <li>.pdf</li>
+                        <li>.txt</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<MensagemChat> Mensagens { get; set; } = new List<MensagemChat>();
+    private string MensagemAtual { get; set; } = string.Empty;
+    private string ModeloAtual { get; set; } = "Carregando...";
+    private bool Processando { get; set; } = false;
+    
+    private readonly Regex ComandoAjudaRegex = new Regex(@"@ajuda\.ai\s+(.+)$", RegexOptions.IgnoreCase);
+    private readonly Regex ComandoSentimentoRegex = new Regex(@"@sentimento\s+(.+)$", RegexOptions.IgnoreCase);
+    
+    protected override async Task OnInitializedAsync()
+    {
+        // Carrega o modelo atual
+        try
+        {
+            ModeloAtual = await ServicoOllama.ObterModeloAtualAsync();
+            
+            // Adiciona mensagem de boas-vindas
+            Mensagens.Add(new MensagemChat
+            {
+                Conteudo = $"Olá! Sou um assistente baseado no modelo {ModeloAtual}. Como posso ajudar você hoje?",
+                Tipo = TipoMensagem.IA
+            });
+        }
+        catch (Exception ex)
+        {
+            Mensagens.Add(new MensagemChat
+            {
+                Conteudo = $"Erro ao conectar ao serviço Ollama: {ex.Message}",
+                Tipo = TipoMensagem.Sistema
+            });
+        }
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Rola para o final das mensagens
+        await JSRuntime.InvokeVoidAsync("scrollToBottom", "mensagensContainer");
+    }
+    
+    private async Task ManipularTecla(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await EnviarMensagem();
+        }
+    }
+    
+    private async Task EnviarMensagem()
+    {
+        if (string.IsNullOrWhiteSpace(MensagemAtual) || Processando)
+            return;
+            
+        var mensagemUsuario = MensagemAtual.Trim();
+        MensagemAtual = string.Empty;
+        Processando = true;
+        
+        try
+        {
+            // Adiciona a mensagem do usuário à lista
+            Mensagens.Add(new MensagemChat
+            {
+                Conteudo = mensagemUsuario,
+                Tipo = TipoMensagem.Usuario
+            });
+            
+            StateHasChanged();
+            
+            // Verifica se é um comando especial
+            if (await ProcessarComandoEspecial(mensagemUsuario))
+            {
+                Processando = false;
+                return;
+            }
+            
+            // Envia para o Ollama
+            var resposta = await ServicoOllama.ProcessarMensagemAsync(mensagemUsuario);
+            
+            // Adiciona a resposta à lista
+            Mensagens.Add(new MensagemChat
+            {
+                Conteudo = resposta,
+                Tipo = TipoMensagem.IA
+            });
+        }
+        catch (Exception ex)
+        {
+            Mensagens.Add(new MensagemChat
+            {
+                Conteudo = $"Erro: {ex.Message}",
+                Tipo = TipoMensagem.Sistema
+            });
+        }
+        finally
+        {
+            Processando = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task<bool> ProcessarComandoEspecial(string mensagem)
+    {
+        // Comando @ajuda.ai
+        var matchAjuda = ComandoAjudaRegex.Match(mensagem);
+        if (matchAjuda.Success && matchAjuda.Groups.Count > 1)
+        {
+            var termo = matchAjuda.Groups[1].Value.Trim();
+            await ProcessarComandoAjuda(termo);
+            return true;
+        }
+        
+        // Comando @sentimento
+        var matchSentimento = ComandoSentimentoRegex.Match(mensagem);
+        if (matchSentimento.Success && matchSentimento.Groups.Count > 1)
+        {
+            var texto = matchSentimento.Groups[1].Value.Trim();
+            await ProcessarComandoSentimento(texto);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    private async Task ProcessarComandoAjuda(string termo)
+    {
+        try
+        {
+            var resultado = await ExplicadorTermos.ExplicarTermoAsync(termo);
+            
+            Mensagens.Add(new MensagemChat
+            {
+                Conteudo = $"<strong>Explicação de '{termo}':</strong><br/>{resultado.Resultado}",
+                Tipo = TipoMensagem.IA
+            });
+        }
+        catch (Exception ex)
+        {
+            Mensagens.Add(new MensagemChat
+            {
+                Conteudo = $"Erro ao processar comando @ajuda.ai: {ex.Message}",
+                Tipo = TipoMensagem.Sistema
+            });
+        }
+    }
+    
+    private async Task ProcessarComandoSentimento(string texto)
+    {
+        try
+        {
+            var resultado = await AnalisadorSentimento.AnalisarSentimentoAsync(texto);
+            
+            var icone = resultado.Resultado.ToLower() switch
+            {
+                "positivo" => "😊",
+                "negativo" => "😔",
+                _ => "😐"
+            };
+            
+            Mensagens.Add(new MensagemChat
+            {
+                Conteudo = $"<strong>Análise de Sentimento:</strong><br/>O texto tem um sentimento {resultado.Resultado} {icone}",
+                Tipo = TipoMensagem.IA
+            });
+        }
+        catch (Exception ex)
+        {
+            Mensagens.Add(new MensagemChat
+            {
+                Conteudo = $"Erro ao processar comando @sentimento: {ex.Message}",
+                Tipo = TipoMensagem.Sistema
+            });
+        }
+    }
+    
+    private async Task CarregarArquivo(InputFileChangeEventArgs e)
+    {
+        if (e.File.Size > 5 * 1024 * 1024) // 5MB limite
+        {
+            Mensagens.Add(new MensagemChat
+            {
+                Conteudo = "Erro: O arquivo excede o tamanho máximo de 5MB.",
+                Tipo = TipoMensagem.Sistema
+            });
+            return;
+        }
+        
+        if (!ProcessadorArquivos.ArquivoSuportado(e.File.Name))
+        {
+            Mensagens.Add(new MensagemChat
+            {
+                Conteudo = "Erro: Formato de arquivo não suportado. Apenas PDF e TXT são permitidos.",
+                Tipo = TipoMensagem.Sistema
+            });
+            return;
+        }
+        
+        try
+        {
+            Processando = true;
+            StateHasChanged();
+            
+            using var stream = e.File.OpenReadStream();
+            var textoExtraido = await ProcessadorArquivos.ProcessarArquivoAsync(stream, e.File.Name);
+            var resumo = await ProcessadorArquivos.GerarResumoAsync(textoExtraido);
+            
+            Mensagens.Add(new MensagemChat
+            {
+                Conteudo = resumo,
+                Tipo = TipoMensagem.Arquivo,
+                NomeArquivo = e.File.Name
+            });
+            
+            // Gera uma resposta da IA sobre o conteúdo do arquivo
+            var resposta = await ServicoOllama.ProcessarMensagemAsync(
+                $"Foi enviado um arquivo chamado {e.File.Name} com o seguinte conteúdo: {resumo}. " +
+                "Por favor, descreva brevemente do que se trata este conteúdo."
+            );
+            
+            Mensagens.Add(new MensagemChat
+            {
+                Conteudo = resposta,
+                Tipo = TipoMensagem.IA
+            });
+        }
+        catch (Exception ex)
+        {
+            Mensagens.Add(new MensagemChat
+            {
+                Conteudo = $"Erro ao processar arquivo: {ex.Message}",
+                Tipo = TipoMensagem.Sistema
+            });
+        }
+        finally
+        {
+            Processando = false;
+            StateHasChanged();
+        }
+    }
+    
+    private string FormatarMensagem(string conteudo)
+    {
+        if (string.IsNullOrEmpty(conteudo)) return string.Empty;
+        
+        // Substitui quebras de linha por <br>
+        return conteudo.Replace("\n", "<br />");
+    }
+}

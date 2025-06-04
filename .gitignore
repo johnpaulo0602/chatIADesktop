@@ -1,0 +1,83 @@
+## Arquivos e pastas específicas para .NET Core / Blazor
+
+# Diretórios de build
+bin/
+obj/
+
+# Diretórios de pacotes e ferramentas NuGet
+packages/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.assets.json
+*.nuget.cache
+
+# Arquivos de cache do Visual Studio
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Arquivos de cache ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# Arquivos de build
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Arquivos de configuração local
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+
+# Arquivos temporários
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Arquivos de dependências
+node_modules/
+jspm_packages/
+bower_components/
+
+# Arquivos de publicação
+publish/
+PublishProfiles/
+*.pubxml
+*.publishproj
+
+# Arquivos específicos do IDE
+.idea/
+*.swp
+*.swo
+
+# Arquivos de cobertura de testes
+*.coverage
+*.coveragexml
+coverage/
+
+# Arquivos específicos de ferramentas
+*.GhostDoc.xml
+.sonarqube/

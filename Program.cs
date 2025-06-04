@@ -1,10 +1,21 @@
 using ChatIADesktop.Components;
+using ChatIADesktop.Servicos;
+using System.Net.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Registra o HttpClient
+builder.Services.AddHttpClient();
+
+// Registra os serviços da aplicação
+builder.Services.AddScoped<IServicoOllama, ServicoOllama>();
+builder.Services.AddScoped<IProcessadorArquivos, ProcessadorArquivos>();
+builder.Services.AddScoped<IAnalisadorSentimento, AnalisadorSentimento>();
+builder.Services.AddScoped<IExplicadorTermos, ExplicadorTermos>();
 
 var app = builder.Build();
 
