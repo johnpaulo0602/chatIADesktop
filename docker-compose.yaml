@@ -18,17 +18,32 @@ services:
     networks:
       - ollama-net
   
+  ollama-init:
+    container_name: ollama-init
+    image: curlimages/curl:latest
+    depends_on:
+      - ollama
+    volumes:
+      - ./scripts:/scripts
+    entrypoint: /bin/sh
+    command: -c "/scripts/pull-models.sh"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - DEFAULT_MODEL=gemma3
+    networks:
+      - ollama-net
+  
   blazor:
     container_name: chat-blazor
     image: chat-blazor:latest
     depends_on:
       - ollama
+      - ollama-init
     ports:
       - "5000:80"
-      - "5001:443"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:80;https://+:443
+      - ASPNETCORE_URLS=http://+:80
       - Ollama__BaseUrl=http://ollama:11434
     restart: unless-stopped
     networks:
