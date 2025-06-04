@@ -4,26 +4,46 @@
 
 <div class="flex flex-col items-center justify-center h-full max-w-3xl mx-auto px-4 py-8">
     <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold mb-3">Hello there!</h1>
-        <p class="text-xl text-gray-400">How can I help you today?</p>
+        <h1 class="text-4xl font-bold mb-3">Olá!</h1>
+        <p class="text-xl text-gray-400">Como posso ajudar você hoje?</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
-        <a href="/chat?prompt=What+are+the+advantages+of+using+Next.js?" 
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl mb-8">
+        <a href="/chat?prompt=Quais%20s%C3%A3o%20as%20vantagens%20de%20usar%20o%20Next.js?" 
            class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
-            <p class="text-white">What are the advantages of using Next.js?</p>
+            <p class="text-white">Quais são as vantagens de usar o Next.js?</p>
         </a>
-        <a href="/chat?prompt=Write+code+to+demonstrate+dijkstra's+algorithm" 
+        <a href="/chat?prompt=Escreva%20c%C3%B3digo%20para%20demonstrar%20o%20algoritmo%20de%20Dijkstra" 
            class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
-            <p class="text-white">Write code to demonstrate dijkstra's algorithm</p>
+            <p class="text-white">Escreva código para demonstrar o algoritmo de Dijkstra</p>
         </a>
-        <a href="/chat?prompt=Help+me+write+an+essay+about+silicon+valley" 
+        <a href="/chat?prompt=Me%20ajude%20a%20escrever%20um%20ensaio%20sobre%20intelig%C3%AAncia%20artificial" 
            class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
-            <p class="text-white">Help me write an essay about silicon valley</p>
+            <p class="text-white">Me ajude a escrever um ensaio sobre inteligência artificial</p>
         </a>
-        <a href="/chat?prompt=What+is+the+weather+in+San+Francisco?" 
+        <a href="/chat?prompt=O%20que%20%C3%A9%20aprendizado%20por%20refor%C3%A7o%3F" 
            class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
-            <p class="text-white">What is the weather in San Francisco?</p>
+            <p class="text-white">O que é aprendizado por reforço?</p>
         </a>
+    </div>
+    
+    <div class="w-full max-w-3xl">
+        <div class="bg-[#202123] border border-gray-800 rounded-md p-4 mb-4">
+            <h2 class="text-xl text-white mb-3">Comandos Especiais</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <a href="/chat?prompt=@sentimento%20Estou%20muito%20feliz%20com%20o%20resultado%20deste%20projeto!" 
+                   class="bg-[#2D2D33] p-3 rounded hover:bg-gray-700">
+                    <p class="text-white">
+                        <strong class="text-green-400">@@sentimento</strong> - Analisa o sentimento de um texto
+                    </p>
+                </a>
+                <a href="/chat?prompt=@ajuda.ai%20Intelig%C3%AAncia%20Artificial" 
+                   class="bg-[#2D2D33] p-3 rounded hover:bg-gray-700">
+                    <p class="text-white">
+                        <strong class="text-blue-400">@@ajuda.ai</strong> - Explica um termo ou conceito
+                    </p>
+                </a>
+            </div>
+        </div>
     </div>
 </div>

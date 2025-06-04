@@ -1,32 +1,50 @@
 ﻿@inherits LayoutComponentBase
+@using ChatIADesktop.Modelos
+@using ChatIADesktop.Servicos
+@using System.Threading
+@inject IJSRuntime JSRuntime
+@inject IServicoOllama ServicoOllama
+@inject NavigationManager NavigationManager
 
 <div class="flex flex-col h-screen bg-black">
     <header class="bg-[#202123] border-b border-gray-700 h-12 flex items-center px-4">
         <div class="flex items-center space-x-4">
-            <button class="w-8 h-8 flex items-center justify-center border border-gray-700 rounded hover:bg-gray-700">
-                <i class="fa fa-folder-open text-gray-400"></i>
-            </button>
-            <button class="w-8 h-8 flex items-center justify-center border border-gray-700 rounded hover:bg-gray-700">
+            <button @onclick="LimparChat" class="w-8 h-8 flex items-center justify-center border border-gray-700 rounded hover:bg-gray-700" title="Novo chat">
                 <i class="fa fa-plus text-gray-400"></i>
             </button>
         </div>
         
         <div class="ml-4 flex items-center">
             <div class="relative">
-                <button class="flex items-center space-x-1 text-sm border border-gray-700 bg-[#202123] hover:bg-gray-700 rounded px-3 py-1.5">
-                    <span class="text-gray-200">Chat model</span>
+                <button @onclick="ToggleModeloDropdown" class="flex items-center space-x-1 text-sm border border-gray-700 bg-[#202123] hover:bg-gray-700 rounded px-3 py-1.5">
+                    <span class="text-gray-200">Modelo: @ModeloAtual</span>
                     <i class="fa fa-chevron-down text-xs text-gray-400"></i>
                 </button>
+                @if (ModeloDropdownAberto)
+                {
+                    <div class="absolute top-full left-0 mt-1 w-48 bg-[#202123] border border-gray-700 rounded-md shadow-lg z-10">
+                        @if (Modelos.Length == 0)
+                        {
+                            <div class="px-4 py-2 text-sm text-gray-400">Carregando...</div>
+                        }
+                        else
+                        {
+                            @foreach (var modelo in Modelos)
+                            {
+                                <button @onclick="() => SelecionarModelo(modelo)" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-700 @(modelo == ModeloAtual ? "bg-gray-700" : "")">
+                                    @modelo
+                                </button>
+                            }
+                        }
+                    </div>
+                }
             </div>
         </div>
         
         <div class="ml-auto flex items-center">
-            <div class="relative">
-                <button class="flex items-center space-x-1 text-sm border border-gray-700 bg-[#202123] hover:bg-gray-700 rounded px-3 py-1.5">
-                    <span class="text-gray-200">Private</span>
-                    <i class="fa fa-chevron-down text-xs text-gray-400"></i>
-                </button>
-            </div>
+            <a href="https://github.com/ollama/ollama" target="_blank" class="w-8 h-8 flex items-center justify-center border border-gray-700 rounded hover:bg-gray-700" title="Github do Ollama">
+                <i class="fab fa-github text-gray-400"></i>
+            </a>
         </div>
     </header>
 
@@ -42,4 +60,62 @@
 </div>
 
 @code {
+    private string ModeloAtual { get; set; } = "Carregando...";
+    private string[] Modelos { get; set; } = Array.Empty<string>();
+    private bool ModeloDropdownAberto { get; set; } = false;
+    private CancellationTokenSource? _carregarModelosCts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ModeloAtual = await ServicoOllama.ObterModeloAtualAsync();
+            await CarregarModelosDisponiveis();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Erro ao inicializar: {ex.Message}");
+        }
+    }
+
+    private async Task CarregarModelosDisponiveis()
+    {
+        try
+        {
+            _carregarModelosCts?.Cancel();
+            _carregarModelosCts = new CancellationTokenSource();
+            
+            Modelos = await ServicoOllama.ListarModelosDisponiveisAsync();
+            if (Modelos.Length == 0)
+            {
+                Modelos = new[] { ModeloAtual };
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Erro ao carregar modelos: {ex.Message}");
+            Modelos = new[] { ModeloAtual };
+        }
+    }
+
+    private void ToggleModeloDropdown()
+    {
+        ModeloDropdownAberto = !ModeloDropdownAberto;
+    }
+
+    private async Task SelecionarModelo(string modelo)
+    {
+        if (modelo != ModeloAtual)
+        {
+            ModeloAtual = modelo;
+            // Atualizar o modelo no appsettings ou em algum serviço de estado global
+            // Por enquanto, só atualizamos a variável local
+        }
+        ModeloDropdownAberto = false;
+    }
+
+    private void LimparChat()
+    {
+        NavigationManager.NavigateTo("/chat", true);
+    }
 }

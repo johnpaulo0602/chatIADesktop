@@ -103,7 +103,7 @@
                             @onkeydown="ManipularTecla"
                             class="w-full rounded-md bg-[#40414f] text-white border border-gray-700 p-3 pr-12 resize-none focus:outline-none focus:ring-1 focus:ring-[#10a37f]"
                             rows="1"
-                            placeholder="Send a message..."
+                            placeholder="Envie uma mensagem..."
                             disabled="@Processando">
                         </textarea>
                         <div class="absolute right-3 bottom-3">
@@ -120,7 +120,7 @@
                     </button>
                 </form>
                 <div class="text-xs text-gray-500 mt-1 text-center">
-                    Modelo atual: @ModeloAtual
+                    Modelo atual: @ModeloAtual | Comandos: <span class="text-green-500">@sentimento</span> <span class="text-blue-500">@ajuda.ai</span>
                 </div>
             </div>
         </div>

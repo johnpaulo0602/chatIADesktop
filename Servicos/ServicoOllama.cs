@@ -47,17 +47,51 @@ namespace ChatIADesktop.Servicos
         {
             try
             {
-                var requestData = new
+                // Tenta usar a API de chat primeiro (Ollama v0.1.14+)
+                try
+                {
+                    var chatRequestData = new
+                    {
+                        model = _modeloPadrao,
+                        messages = new[]
+                        {
+                            new { role = "user", content = mensagem }
+                        },
+                        stream = false
+                    };
+
+                    var chatResponse = await _httpClient.PostAsJsonAsync("/api/chat", chatRequestData);
+                    if (chatResponse.IsSuccessStatusCode)
+                    {
+                        var jsonResponse = await chatResponse.Content.ReadAsStringAsync();
+                        var document = JsonDocument.Parse(jsonResponse);
+                        var root = document.RootElement;
+
+                        if (root.TryGetProperty("message", out var messageElement) && 
+                            messageElement.TryGetProperty("content", out var contentElement))
+                        {
+                            return contentElement.GetString() ?? "Sem resposta";
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Falha ao usar API de chat, tentando fallback para API generate");
+                    // Continuar com o fallback abaixo
+                }
+
+                // Fallback para a API generate (versões mais antigas do Ollama)
+                var generateRequestData = new
                 {
                     model = _modeloPadrao,
                     prompt = mensagem,
                     stream = false
                 };
 
-                var response = await _httpClient.PostAsJsonAsync("/api/generate", requestData);
-                response.EnsureSuccessStatusCode();
+                var generateResponse = await _httpClient.PostAsJsonAsync("/api/generate", generateRequestData);
+                generateResponse.EnsureSuccessStatusCode();
 
-                var ollamaResponse = await response.Content.ReadFromJsonAsync<RespostaOllama>();
+                var ollamaResponse = await generateResponse.Content.ReadFromJsonAsync<RespostaOllama>();
                 return ollamaResponse?.Response ?? "Não foi possível obter uma resposta do modelo.";
             }
             catch (HttpRequestException ex)
@@ -86,27 +120,62 @@ namespace ChatIADesktop.Servicos
         {
             try
             {
-                var response = await _httpClient.GetAsync("/api/tags");
-                response.EnsureSuccessStatusCode();
-                
-                var jsonResponse = await response.Content.ReadAsStringAsync();
-                var document = JsonDocument.Parse(jsonResponse);
-                
-                var modelos = new List<string>();
-                var root = document.RootElement;
-                
-                if (root.TryGetProperty("models", out var modelArray) && modelArray.ValueKind == JsonValueKind.Array)
+                // Tenta usar o endpoint models (versões mais recentes)
+                try
                 {
-                    foreach (var model in modelArray.EnumerateArray())
+                    var response = await _httpClient.GetAsync("/api/models");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var jsonResponse = await response.Content.ReadAsStringAsync();
+                        var document = JsonDocument.Parse(jsonResponse);
+                        var modelos = new List<string>();
+                        
+                        var root = document.RootElement;
+                        if (root.TryGetProperty("models", out var modelArray) && modelArray.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var model in modelArray.EnumerateArray())
+                            {
+                                if (model.TryGetProperty("name", out var name) && !string.IsNullOrEmpty(name.GetString()))
+                                {
+                                    modelos.Add(name.GetString()!);
+                                }
+                            }
+                            
+                            return modelos.ToArray();
+                        }
+                    }
+                }
+                catch
+                {
+                    // Continuar com o fallback
+                }
+                
+                // Fallback para endpoint tags (versões mais antigas)
+                var tagsResponse = await _httpClient.GetAsync("/api/tags");
+                tagsResponse.EnsureSuccessStatusCode();
+                
+                var tagsJsonResponse = await tagsResponse.Content.ReadAsStringAsync();
+                var tagsDocument = JsonDocument.Parse(tagsJsonResponse);
+                
+                var tagsModelos = new List<string>();
+                var tagsRoot = tagsDocument.RootElement;
+                
+                if (tagsRoot.TryGetProperty("models", out var tagsModelArray) && tagsModelArray.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var model in tagsModelArray.EnumerateArray())
                     {
                         if (model.TryGetProperty("name", out var name) && !string.IsNullOrEmpty(name.GetString()))
                         {
-                            modelos.Add(name.GetString()!);
+                            tagsModelos.Add(name.GetString()!);
                         }
                     }
                 }
                 
-                return modelos.ToArray();
+                if (tagsModelos.Count > 0)
+                    return tagsModelos.ToArray();
+                
+                // Se nenhuma API funcionou, retorna apenas o modelo padrão
+                return new[] { _modeloPadrao };
             }
             catch (Exception ex)
             {
