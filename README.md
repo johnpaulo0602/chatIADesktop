@@ -90,7 +90,6 @@ cd chatIADesktop
 
 4. Acesse a aplicação em:
    - http://localhost:5000
-   - https://localhost:5001
 
 ## Executando com Docker (Alternativa)
 
@@ -113,17 +112,82 @@ docker-compose up -d
 
 3. A aplicação estará disponível em:
    - HTTP: http://localhost:5000
-   - HTTPS: https://localhost:5001
+   
+4. **IMPORTANTE**: O modelo de IA será baixado automaticamente pelo container ollama-init, mas você pode verificar o status com:
+```bash
+docker logs ollama-init
+```
 
-4. Baixe o modelo de IA necessário:
+### Modelos Ollama
+
+O container ollama-init foi configurado para baixar automaticamente o modelo padrão (gemma3). Se você quiser usar modelos alternativos:
+
+1. Baixe manualmente outros modelos conforme necessário:
+```bash
+docker exec -it ollama ollama pull gemma3:12b
+# ou
+docker exec -it ollama ollama pull llama2
+```
+
+2. Altere o modelo no chat usando a interface do usuário, ou modifique o modelo padrão em:
+   - `appsettings.Production.json` para alteração permanente
+   - Variável de ambiente `Ollama__ModeloPadrao` no docker-compose.yaml
+
+3. Verifique os modelos disponíveis com:
+```bash
+docker exec -it ollama ollama list
+```
+
+### Solucionando Erros 404 da API Ollama
+
+Se você encontrar erros 404 ao tentar utilizar a aplicação, provavelmente o modelo não está disponível no Ollama. Para resolver:
+
+1. Verifique os logs do Ollama:
+```bash
+docker logs ollama
+```
+
+2. Certifique-se de que o modelo configurado em appsettings.json (gemma3) foi baixado:
+```bash
+docker exec -it ollama ollama list
+```
+
+3. Se necessário, baixe o modelo manualmente:
 ```bash
 docker exec -it ollama ollama pull gemma3:latest
 ```
 
-Para baixar modelos alternativos, como o gemma3:12b:
+### Configurando HTTPS para Docker (Opcional)
+
+Por padrão, a aplicação usa apenas HTTP para simplificar o desenvolvimento local. Se você precisar de HTTPS:
+
+1. Gere um certificado SSL para desenvolvimento:
 ```bash
-docker exec -it ollama ollama pull gemma3:12b
+dotnet dev-certs https -ep cert.pfx -p SuaSenhaAqui
 ```
+
+2. Atualize o docker-compose.yaml:
+```yaml
+blazor:
+  # Outras configurações...
+  volumes:
+    - ./cert.pfx:/app/cert.pfx
+  environment:
+    - ASPNETCORE_ENVIRONMENT=Production
+    - ASPNETCORE_URLS=http://+:80;https://+:443
+    - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/cert.pfx
+    - ASPNETCORE_Kestrel__Certificates__Default__Password=SuaSenhaAqui
+  ports:
+    - "5000:80"
+    - "5001:443"
+```
+
+3. Reinicie os containers:
+```bash
+docker-compose down && docker-compose up -d
+```
+
+Para mais informações sobre HTTPS no Docker, consulte a [documentação oficial](https://learn.microsoft.com/pt-br/aspnet/core/security/docker-https).
 
 ### Parando a Aplicação Docker
 
@@ -154,14 +218,6 @@ docker-compose down -v
 - **Servicos**: Lógica de negócios e comunicação com Ollama
 - **Modelos**: Classes de dados
 - **Utilitarios**: Ferramentas auxiliares
-
-## Resolução de Problemas
-
-- **Certificado HTTPS não confiável**: Adicione uma exceção de segurança no navegador
-- **Modelo não carregado**: Verifique os logs: `docker logs ollama` ou `ollama logs`
-- **Erro de conexão**: Verifique se o serviço Ollama está rodando
-- **Performance lenta**: Modelos menores como o gemma3:2b ou mistral:7b exigem menos recursos
-- **Porta em uso**: Altere as portas no docker-compose.yaml ou na execução local
 
 ## Tecnologias Utilizadas
 
