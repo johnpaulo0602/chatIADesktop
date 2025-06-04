@@ -1,41 +1,29 @@
 ﻿@page "/"
 
-<PageTitle>Chat IA Desktop - Início</PageTitle>
+<PageTitle>Chat com Ollama - Início</PageTitle>
 
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8 text-center">
-            <div class="display-4 mb-4">Bem-vindo ao Chat IA Desktop</div>
-            
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <p class="lead">
-                        Esta aplicação permite conversar com modelos de IA usando o Ollama localmente 
-                        no seu computador, mantendo suas conversas privadas.
-                    </p>
-                </div>
-            </div>
-            
-            <div class="row mt-5">
-                <div class="col-md-6 mb-3">
-                    <div class="card h-100 shadow-sm">
-                        <div class="card-body">
-                            <h5 class="card-title">Conversa com IA</h5>
-                            <p class="card-text">Inicie uma conversa com o modelo de IA de sua escolha.</p>
-                            <a href="/chat" class="btn btn-primary">Iniciar Chat</a>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <div class="card h-100 shadow-sm">
-                        <div class="card-body">
-                            <h5 class="card-title">Comandos Especiais</h5>
-                            <p class="card-text">Use @@ajuda.ai para explicar termos e @@sentimento para análise de sentimento.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="flex flex-col items-center justify-center h-full max-w-3xl mx-auto px-4 py-8">
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold mb-3">Hello there!</h1>
+        <p class="text-xl text-gray-400">How can I help you today?</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
+        <a href="/chat?prompt=What+are+the+advantages+of+using+Next.js?" 
+           class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
+            <p class="text-white">What are the advantages of using Next.js?</p>
+        </a>
+        <a href="/chat?prompt=Write+code+to+demonstrate+dijkstra's+algorithm" 
+           class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
+            <p class="text-white">Write code to demonstrate dijkstra's algorithm</p>
+        </a>
+        <a href="/chat?prompt=Help+me+write+an+essay+about+silicon+valley" 
+           class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
+            <p class="text-white">Help me write an essay about silicon valley</p>
+        </a>
+        <a href="/chat?prompt=What+is+the+weather+in+San+Francisco?" 
+           class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
+            <p class="text-white">What is the weather in San Francisco?</p>
+        </a>
     </div>
 </div>

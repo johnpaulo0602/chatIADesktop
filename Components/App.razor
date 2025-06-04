@@ -5,16 +5,32 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#121212',
+                        darker: '#0a0a0a',
+                        primary: '#444654',
+                        secondary: '#202123',
+                        accent: '#10a37f'
+                    }
+                }
+            }
+        }
+    </script>
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="ChatIADesktop.styles.css" />
-    <link rel="stylesheet" href="css/tema-escuro.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 
-<body>
+<body class="bg-black text-gray-100">
     <Routes @rendermode="InteractiveServer" />
     <script src="_framework/blazor.web.js"></script>
     <script src="js/site.js"></script>

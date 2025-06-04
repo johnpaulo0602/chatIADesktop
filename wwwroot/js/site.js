@@ -6,25 +6,14 @@ function scrollToBottom(elementId) {
     }
 }
 
-// Alternar tema escuro/claro
-function toggleDarkMode() {
-    const body = document.body;
-    body.classList.toggle('dark-mode');
-    
-    // Salvar preferência no localStorage
-    const isDarkMode = body.classList.contains('dark-mode');
-    localStorage.setItem('darkModeEnabled', isDarkMode);
-}
-
-// Verificar tema preferido ao carregar a página
-document.addEventListener('DOMContentLoaded', () => {
-    const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const savedMode = localStorage.getItem('darkModeEnabled');
-    
-    // Se houver uma preferência salva, use-a, caso contrário use a preferência do sistema
-    if (savedMode !== null) {
-        document.body.classList.toggle('dark-mode', savedMode === 'true');
-    } else if (prefersDarkMode) {
-        document.body.classList.add('dark-mode');
-    }
+// Auto-resize textarea
+document.addEventListener('DOMContentLoaded', function() {
+    const textareas = document.querySelectorAll('textarea');
+    textareas.forEach(textarea => {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            const newHeight = Math.min(this.scrollHeight, 200); // Limita a altura máxima
+            this.style.height = newHeight + 'px';
+        });
+    });
 });

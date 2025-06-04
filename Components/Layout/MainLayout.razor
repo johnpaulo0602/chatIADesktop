@@ -1,34 +1,45 @@
 ﻿@inherits LayoutComponentBase
-@inject IJSRuntime JSRuntime
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
-    <main>
-        <div class="top-row px-4">
-            <button @onclick="ToggleDarkMode" class="btn btn-sm btn-outline-primary">
-                <i class="fa fa-moon"></i> Alternar Tema
+<div class="flex flex-col h-screen bg-black">
+    <header class="bg-[#202123] border-b border-gray-700 h-12 flex items-center px-4">
+        <div class="flex items-center space-x-4">
+            <button class="w-8 h-8 flex items-center justify-center border border-gray-700 rounded hover:bg-gray-700">
+                <i class="fa fa-folder-open text-gray-400"></i>
             </button>
-            <a href="https://github.com/ollama/ollama" target="_blank">Sobre o Ollama</a>
+            <button class="w-8 h-8 flex items-center justify-center border border-gray-700 rounded hover:bg-gray-700">
+                <i class="fa fa-plus text-gray-400"></i>
+            </button>
         </div>
+        
+        <div class="ml-4 flex items-center">
+            <div class="relative">
+                <button class="flex items-center space-x-1 text-sm border border-gray-700 bg-[#202123] hover:bg-gray-700 rounded px-3 py-1.5">
+                    <span class="text-gray-200">Chat model</span>
+                    <i class="fa fa-chevron-down text-xs text-gray-400"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="ml-auto flex items-center">
+            <div class="relative">
+                <button class="flex items-center space-x-1 text-sm border border-gray-700 bg-[#202123] hover:bg-gray-700 rounded px-3 py-1.5">
+                    <span class="text-gray-200">Private</span>
+                    <i class="fa fa-chevron-down text-xs text-gray-400"></i>
+                </button>
+            </div>
+        </div>
+    </header>
 
-        <article class="content px-4">
-            @Body
-        </article>
+    <main class="flex-grow flex flex-col overflow-hidden">
+        @Body
     </main>
-</div>
 
-<div id="blazor-error-ui">
-    Ocorreu um erro inesperado.
-    <a href="" class="reload">Recarregar</a>
-    <a class="dismiss">🗙</a>
+    <div id="blazor-error-ui" class="hidden">
+        Ocorreu um erro inesperado.
+        <a href="" class="reload">Recarregar</a>
+        <a class="dismiss">🗙</a>
+    </div>
 </div>
 
 @code {
-    private async Task ToggleDarkMode()
-    {
-        await JSRuntime.InvokeVoidAsync("toggleDarkMode");
-    }
 }

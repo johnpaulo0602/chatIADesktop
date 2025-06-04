@@ -3,101 +3,124 @@
 @using ChatIADesktop.Servicos
 @using ChatIADesktop.Utilitarios
 @using System.Text.RegularExpressions
+@using Microsoft.AspNetCore.WebUtilities
 @inject IServicoOllama ServicoOllama
 @inject IAnalisadorSentimento AnalisadorSentimento
 @inject IExplicadorTermos ExplicadorTermos
 @inject IProcessadorArquivos ProcessadorArquivos
 @inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 
-<PageTitle>Chat IA Desktop - Conversa</PageTitle>
+<PageTitle>Chat com Ollama</PageTitle>
 
-<div class="container-fluid chat-container">
-    <div class="row">
-        <div class="col-md-9">
-            <div class="chat-messages" id="mensagensContainer">
-                @if (Mensagens.Count == 0)
-                {
-                    <div class="empty-chat-message">
-                        <p>Comece uma conversa com a IA...</p>
-                    </div>
-                }
-                else
-                {
-                    @foreach (var mensagem in Mensagens)
-                    {
-                        <div class="message-container @(mensagem.EhUsuario ? "user-message" : mensagem.EhIA ? "ai-message" : mensagem.EhArquivo ? "file-message" : "system-message")">
-                            @if (mensagem.EhArquivo)
+<div class="flex flex-col h-full">
+    <div class="flex-grow overflow-auto" id="mensagensContainer">
+        @if (Mensagens.Count == 0)
+        {
+            <div class="flex items-center justify-center h-full">
+                <p class="text-gray-500">As mensagens aparecerão aqui...</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var mensagem in Mensagens)
+            {
+                <div class="@(mensagem.EhUsuario ? "bg-[#343541]" : "bg-[#444654]") border-b border-gray-700">
+                    <div class="max-w-3xl mx-auto py-6 px-4">
+                        <div class="flex items-start gap-4">
+                            @if (mensagem.EhUsuario)
                             {
-                                <div class="file-info">
-                                    <i class="fa fa-file"></i>
-                                    <strong>Arquivo:</strong> @mensagem.NomeArquivo
+                                <div class="w-8 h-8 rounded-full bg-gray-500 flex items-center justify-center text-white">
+                                    <i class="fa fa-user"></i>
                                 </div>
                             }
-                            
-                            <div class="message-content">
-                                @((MarkupString)FormatarMensagem(mensagem.Conteudo))
-                            </div>
-                            
-                            <div class="message-time">
-                                @mensagem.DataHora.ToString("HH:mm")
-                            </div>
-                        </div>
-                    }
-                }
+                            else if (mensagem.EhIA)
+                            {
+                                <div class="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white">
+                                    <i class="fa fa-robot"></i>
+                                </div>
+                            }
+                            else if (mensagem.EhSistema)
+                            {
+                                <div class="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-white">
+                                    <i class="fa fa-exclamation-triangle"></i>
+                                </div>
+                            }
+                            else if (mensagem.EhArquivo)
+                            {
+                                <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                                    <i class="fa fa-file"></i>
+                                </div>
+                            }
 
-                @if (Processando)
-                {
-                    <div class="processing-indicator">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Processando...</span>
+                            <div class="flex-1 text-gray-300">
+                                @if (mensagem.EhArquivo)
+                                {
+                                    <div class="mb-2 text-blue-300 text-sm">
+                                        <i class="fa fa-file mr-1"></i>
+                                        <span>@mensagem.NomeArquivo</span>
+                                    </div>
+                                }
+                                <div class="message-content whitespace-pre-wrap">
+                                    @((MarkupString)FormatarMensagem(mensagem.Conteudo))
+                                </div>
+                            </div>
                         </div>
                     </div>
-                }
-            </div>
+                </div>
+            }
+        }
 
-            <div class="chat-input">
-                <div class="input-group">
-                    <InputFile OnChange="CarregarArquivo" class="form-control file-input" accept=".pdf,.txt" />
-                    <textarea 
-                        @bind="MensagemAtual" 
-                        @bind:event="oninput"
-                        @onkeydown="ManipularTecla" 
-                        class="form-control" 
-                        placeholder="Digite sua mensagem..."
-                        rows="2"
-                        disabled="@Processando">
-                    </textarea>
-                    <button class="btn btn-primary" @onclick="EnviarMensagem" disabled="@(Processando || string.IsNullOrWhiteSpace(MensagemAtual))">
+        @if (Processando)
+        {
+            <div class="bg-[#444654] border-b border-gray-700">
+                <div class="max-w-3xl mx-auto py-6 px-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white">
+                            <i class="fa fa-robot"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="typing-dots">
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="border-t border-gray-700 px-4 py-4">
+        <div class="max-w-3xl mx-auto">
+            <div class="relative">
+                <form @onsubmit="EnviarMensagem" class="flex items-center">
+                    <div class="relative flex-grow">
+                        <textarea 
+                            @bind="MensagemAtual" 
+                            @bind:event="oninput"
+                            @onkeydown="ManipularTecla"
+                            class="w-full rounded-md bg-[#40414f] text-white border border-gray-700 p-3 pr-12 resize-none focus:outline-none focus:ring-1 focus:ring-[#10a37f]"
+                            rows="1"
+                            placeholder="Send a message..."
+                            disabled="@Processando">
+                        </textarea>
+                        <div class="absolute right-3 bottom-3">
+                            <label class="cursor-pointer text-gray-400 hover:text-white">
+                                <i class="fa fa-paperclip"></i>
+                                <InputFile OnChange="CarregarArquivo" class="hidden" accept=".pdf,.txt" />
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" 
+                            class="ml-2 p-2 rounded-md bg-[#10a37f] hover:bg-[#0d8a6c] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled="@(Processando || string.IsNullOrWhiteSpace(MensagemAtual))">
                         <i class="fa fa-paper-plane"></i>
                     </button>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="chat-sidebar">
-                <div class="sidebar-header">
-                    <h5>Informações</h5>
-                </div>
-                
-                <div class="model-info">
-                    <strong>Modelo:</strong> @ModeloAtual
-                </div>
-                
-                <div class="sidebar-section">
-                    <h6>Comandos Disponíveis</h6>
-                    <ul class="commands-list">
-                        <li><code>@@ajuda.ai [termo]</code> - Explica um termo</li>
-                        <li><code>@@sentimento [texto]</code> - Analisa sentimento</li>
-                    </ul>
-                </div>
-                
-                <div class="sidebar-section">
-                    <h6>Arquivo Suportados</h6>
-                    <ul class="file-list">
-                        <li>.pdf</li>
-                        <li>.txt</li>
-                    </ul>
+                </form>
+                <div class="text-xs text-gray-500 mt-1 text-center">
+                    Modelo atual: @ModeloAtual
                 </div>
             </div>
         </div>
@@ -120,12 +143,23 @@
         {
             ModeloAtual = await ServicoOllama.ObterModeloAtualAsync();
             
-            // Adiciona mensagem de boas-vindas
-            Mensagens.Add(new MensagemChat
+            // Verifica se há um prompt na URL
+            var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+            if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("prompt", out var promptParam))
             {
-                Conteudo = $"Olá! Sou um assistente baseado no modelo {ModeloAtual}. Como posso ajudar você hoje?",
-                Tipo = TipoMensagem.IA
-            });
+                MensagemAtual = promptParam.ToString();
+                await Task.Delay(100); // Pequeno delay para garantir que a UI esteja pronta
+                await EnviarMensagem();
+            }
+            else
+            {
+                // Adiciona mensagem de boas-vindas
+                Mensagens.Add(new MensagemChat
+                {
+                    Conteudo = $"Olá! Sou um assistente baseado no modelo {ModeloAtual}. Como posso ajudar você hoje?",
+                    Tipo = TipoMensagem.IA
+                });
+            }
         }
         catch (Exception ex)
         {
@@ -234,7 +268,7 @@
             
             Mensagens.Add(new MensagemChat
             {
-                Conteudo = $"<strong>Explicação de '{termo}':</strong><br/>{resultado.Resultado}",
+                Conteudo = $"**Explicação de '{termo}':**\n\n{resultado.Resultado}",
                 Tipo = TipoMensagem.IA
             });
         }
@@ -263,7 +297,7 @@
             
             Mensagens.Add(new MensagemChat
             {
-                Conteudo = $"<strong>Análise de Sentimento:</strong><br/>O texto tem um sentimento {resultado.Resultado} {icone}",
+                Conteudo = $"**Análise de Sentimento:**\n\nO texto tem um sentimento {resultado.Resultado} {icone}",
                 Tipo = TipoMensagem.IA
             });
         }
@@ -346,7 +380,16 @@
     {
         if (string.IsNullOrEmpty(conteudo)) return string.Empty;
         
+        // Substitui markdown básico (** para negrito, * para itálico, ``` para código)
+        var resultado = conteudo
+            .Replace("**", "<strong>", StringComparison.OrdinalIgnoreCase)
+            .Replace("**", "</strong>", StringComparison.OrdinalIgnoreCase)
+            .Replace("*", "<em>", StringComparison.OrdinalIgnoreCase)
+            .Replace("*", "</em>", StringComparison.OrdinalIgnoreCase);
+            
         // Substitui quebras de linha por <br>
-        return conteudo.Replace("\n", "<br />");
+        resultado = resultado.Replace("\n", "<br />");
+        
+        return resultado;
     }
 }

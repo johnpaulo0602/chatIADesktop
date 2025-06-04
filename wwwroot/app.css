@@ -1,29 +1,115 @@
-html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+/* Estilos personalizados complementares ao Tailwind CSS */
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
 }
 
-a, .btn-link {
-    color: #006bb7;
+::-webkit-scrollbar-track {
+    background: #202123;
 }
 
-.btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 8px;
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+::-webkit-scrollbar-thumb:hover {
+    background: #10a37f;
 }
 
-.content {
-    padding-top: 1.1rem;
+/* Estilos para o chat */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
 }
 
-h1:focus {
-    outline: none;
+.chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-bottom: 30px;
 }
 
+.user-message {
+    background-color: #444654;
+}
+
+.ai-message {
+    background-color: #343541;
+}
+
+.system-message {
+    background-color: rgba(255, 173, 51, 0.2);
+    border-left: 4px solid #ffad33;
+}
+
+.file-message {
+    background-color: rgba(16, 163, 127, 0.2);
+    border-left: 4px solid #10a37f;
+}
+
+.message-content pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.message-content code {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+/* Animação de loading para mensagens */
+.processing-indicator {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+
+.typing-dots {
+    display: flex;
+    align-items: center;
+}
+
+.typing-dot {
+    width: 8px;
+    height: 8px;
+    margin: 0 2px;
+    background-color: #10a37f;
+    border-radius: 50%;
+    opacity: 0.6;
+    animation: typing 1.5s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+/* Blazor validation */
 .valid.modified:not([type=checkbox]) {
     outline: 1px solid #26b050;
 }
@@ -42,10 +128,6 @@ h1:focus {
     color: white;
 }
 
-    .blazor-error-boundary::after {
-        content: "An error has occurred."
-    }
-
-.darker-border-checkbox.form-check-input {
-    border-color: #929292;
+.blazor-error-boundary::after {
+    content: "An error has occurred."
 }
