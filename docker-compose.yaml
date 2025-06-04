@@ -1,0 +1,42 @@
+services:
+  ollama:
+    container_name: ollama
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - ollama-net
+  
+  blazor:
+    container_name: chat-blazor
+    image: chat-blazor:latest
+    depends_on:
+      - ollama
+    ports:
+      - "5000:80"
+      - "5001:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80;https://+:443
+      - Ollama__BaseUrl=http://ollama:11434
+    restart: unless-stopped
+    networks:
+      - ollama-net
+
+volumes:
+  ollama:
+
+networks:
+  ollama-net:
+    driver: bridge
