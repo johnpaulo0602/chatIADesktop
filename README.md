@@ -7,7 +7,6 @@ Uma aplicação Blazor Server que permite conversar com modelos de IA usando o O
 - 💬 Chat com modelos de IA local via Ollama
 - 📁 Upload e análise de arquivos PDF e TXT
 - 🔍 Comandos especiais (@ajuda.ai e @sentimento)
-- 🌙 Tema escuro moderno
 - 🔒 Processamento local (privacidade)
 
 ## Clonando o Repositório
