@@ -1,4 +1,8 @@
 ﻿@page "/"
+@using ChatIADesktop.Servicos
+@inject IServicoExemplos ServicoExemplos
+@inject IServicoOllama ServicoOllama
+@inject NavigationManager NavigationManager
 
 <PageTitle>Chat com Ollama - Início</PageTitle>
 
@@ -9,41 +13,100 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl mb-8">
-        <a href="/chat?prompt=Quais%20s%C3%A3o%20as%20vantagens%20de%20usar%20o%20Next.js?" 
+        <a href="/chat?prompt=%40sentimento%20Estou%20muito%20feliz%20com%20o%20resultado%20deste%20projeto!" 
            class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
-            <p class="text-white">Quais são as vantagens de usar o Next.js?</p>
+            <p class="text-white"><strong class="text-green-400">@@sentimento</strong> - Analisa o sentimento de um texto</p>
         </a>
-        <a href="/chat?prompt=Escreva%20c%C3%B3digo%20para%20demonstrar%20o%20algoritmo%20de%20Dijkstra" 
+        <a href="/chat?prompt=%40ajuda.ai%20Intelig%C3%AAncia%20Artificial" 
            class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
-            <p class="text-white">Escreva código para demonstrar o algoritmo de Dijkstra</p>
+            <p class="text-white"><strong class="text-blue-400">@@ajuda.ai</strong> - Explica um termo ou conceito</p>
         </a>
-        <a href="/chat?prompt=Me%20ajude%20a%20escrever%20um%20ensaio%20sobre%20intelig%C3%AAncia%20artificial" 
-           class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
-            <p class="text-white">Me ajude a escrever um ensaio sobre inteligência artificial</p>
-        </a>
-        <a href="/chat?prompt=O%20que%20%C3%A9%20aprendizado%20por%20refor%C3%A7o%3F" 
-           class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
-            <p class="text-white">O que é aprendizado por reforço?</p>
-        </a>
+        @if (PerguntasExemplo.Count > 0)
+        {
+            @foreach (var pergunta in PerguntasExemplo)
+            {
+                <a href="/chat?prompt=@Uri.EscapeDataString(pergunta)" 
+                   class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
+                    <p class="text-white">@pergunta</p>
+                </a>
+            }
+        }
+        else
+        {
+            <a href="/chat?prompt=Me%20conte%20uma%20piada!" 
+               class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
+                <p class="text-white">Me conte uma piada!</p>
+            </a>
+            <a href="/chat?prompt=Me%20ajude%20a%20aprender%20sobre%20IA" 
+               class="bg-[#202123] border border-gray-800 rounded-md p-4 hover:bg-gray-800 transition-all">
+                <p class="text-white">Me ajude a aprender sobre IA</p>
+            </a>
+        }
+    </div>
+    
+    <!-- Campo de entrada direto na página inicial -->
+    <div class="w-full max-w-3xl mb-8">
+        <div class="bg-[#202123] border border-gray-800 rounded-md p-4">
+            <h2 class="text-xl text-white mb-3">Iniciar Conversa</h2>
+            <form @onsubmit="EnviarMensagem" class="flex items-center">
+                <div class="relative flex-grow">
+                    <input 
+                        @bind="MensagemAtual" 
+                        class="w-full rounded-md bg-[#40414f] text-white border border-gray-700 p-3 pr-12 focus:outline-none focus:ring-1 focus:ring-[#10a37f]"
+                        placeholder="Digite sua mensagem aqui..."
+                        autocomplete="off">
+                </div>
+                <button type="submit" 
+                        class="ml-2 p-3 rounded-md bg-[#10a37f] hover:bg-[#0d8a6c] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled="@(string.IsNullOrWhiteSpace(MensagemAtual))">
+                    <i class="fa fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
     </div>
     
     <div class="w-full max-w-3xl">
         <div class="bg-[#202123] border border-gray-800 rounded-md p-4 mb-4">
-            <h2 class="text-xl text-white mb-3">Comandos Especiais</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <a href="/chat?prompt=%40sentimento%20Estou%20muito%20feliz%20com%20o%20resultado%20deste%20projeto!" 
-                   class="bg-[#2D2D33] p-3 rounded hover:bg-gray-700">
-                    <p class="text-white">
-                        <strong class="text-green-400">@@sentimento</strong> - Analisa o sentimento de um texto
-                    </p>
-                </a>
-                <a href="/chat?prompt=%40ajuda.ai%20Intelig%C3%AAncia%20Artificial" 
-                   class="bg-[#2D2D33] p-3 rounded hover:bg-gray-700">
-                    <p class="text-white">
-                        <strong class="text-blue-400">@@ajuda.ai</strong> - Explica um termo ou conceito
-                    </p>
-                </a>
-            </div>
+            <h2 class="text-xl text-white mb-3">Sobre o Modelo</h2>
+            <p class="text-gray-300 mb-2">
+                Modelo atual: <span class="text-green-400">@ModeloAtual</span>
+            </p>
+            <p class="text-gray-400 text-sm">
+                Este chat usa o Ollama, uma plataforma de modelos de linguagem que roda localmente. 
+                As mensagens são processadas no seu próprio computador, sem enviar dados para serviços externos.
+            </p>
         </div>
     </div>
 </div>
+
+@code {
+    private List<string> PerguntasExemplo { get; set; } = new List<string>();
+    private string ModeloAtual { get; set; } = "Carregando...";
+    private string MensagemAtual { get; set; } = string.Empty;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Obtém o modelo atual
+            ModeloAtual = await ServicoOllama.ObterModeloAtualAsync();
+            
+            // Gera as perguntas de exemplo
+            PerguntasExemplo = await ServicoExemplos.GerarPerguntasExemploAsync(2);
+        }
+        catch (Exception)
+        {
+            // Em caso de erro, deixa as perguntas padrão
+            PerguntasExemplo = new List<string>();
+        }
+    }
+    
+    private void EnviarMensagem()
+    {
+        if (string.IsNullOrWhiteSpace(MensagemAtual))
+            return;
+            
+        var mensagemCodificada = Uri.EscapeDataString(MensagemAtual.Trim());
+        NavigationManager.NavigateTo($"/chat?prompt={mensagemCodificada}", true);
+    }
+}

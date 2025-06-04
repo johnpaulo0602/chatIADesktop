@@ -11,11 +11,15 @@ builder.Services.AddRazorComponents()
 // Registra o HttpClient
 builder.Services.AddHttpClient();
 
+// Adiciona o cache de memória para o ServicoExemplos
+builder.Services.AddMemoryCache();
+
 // Registra os serviços da aplicação
 builder.Services.AddScoped<IServicoOllama, ServicoOllama>();
 builder.Services.AddScoped<IProcessadorArquivos, ProcessadorArquivos>();
 builder.Services.AddScoped<IAnalisadorSentimento, AnalisadorSentimento>();
 builder.Services.AddScoped<IExplicadorTermos, ExplicadorTermos>();
+builder.Services.AddScoped<IServicoExemplos, ServicoExemplos>();
 
 var app = builder.Build();
 
